@@ -4,6 +4,7 @@ using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using MongoDB.Driver;
 using RureSubPostsComments.Models;
+using RureSubPostsComments.Models.Dtos;
 using RureSubPostsComments.Services;
 using RureSubPostsComments.Workers;
 using StackExchange.Redis;
@@ -15,6 +16,7 @@ builder.Services.AddControllers();
 
 builder.Services.AddHostedService<CommentLikedWorker>();
 builder.Services.AddHostedService<PostDeletedWorker>();
+builder.Services.AddHostedService<ProfilePropertyChangedWorker>();
 
 #region Kafka
 

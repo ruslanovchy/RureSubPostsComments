@@ -201,7 +201,7 @@ public class CommentsController : Controller
         [FromQuery] Guid? rootCommentId,
         [FromQuery] Guid? lastCommentId,
         [FromQuery] DateTime? lastCommentCreatedAt,
-        [FromQuery] int pageSize = 10) 
+        [FromQuery] int pageSize = 6) 
     {
         if (postId == null)
         {
@@ -209,22 +209,34 @@ public class CommentsController : Controller
         }
 
         lastCommentId ??= Guid.Empty;
-        lastCommentCreatedAt ??= DateTime.MaxValue;
-        pageSize = (pageSize < 5) ? 5 : (pageSize > 100) ? 100 : pageSize;
+        pageSize = (pageSize < 4) ? 4 : (pageSize > 100) ? 100 : pageSize;
 
-        FilterDefinition<CommentDocument>? filter = Builders<CommentDocument>.Filter.And(
-            Builders<CommentDocument>.Filter.Lt(d => d.CreatedAt, lastCommentCreatedAt),
-            Builders<CommentDocument>.Filter.Eq(d => d.PostId, postId),
-            Builders<CommentDocument>.Filter.Eq(d => d.RootCommentId, rootCommentId)
-        );
+        FilterDefinition<CommentDocument>? filter = null;
 
-        var sort = Builders<CommentDocument>.Sort
-            .Descending(d => d.CreatedAt);
+        SortDefinition<CommentDocument>? sort = null;
 
         if (rootCommentId != null)
         {
+            lastCommentCreatedAt ??= DateTime.MinValue;
+            filter = Builders<CommentDocument>.Filter.And(
+                Builders<CommentDocument>.Filter.Gt(d => d.CreatedAt, lastCommentCreatedAt),
+                Builders<CommentDocument>.Filter.Eq(d => d.PostId, postId),
+                Builders<CommentDocument>.Filter.Eq(d => d.RootCommentId, rootCommentId)
+            );
+
             sort = Builders<CommentDocument>.Sort
                 .Ascending(d => d.CreatedAt);
+        }
+        else
+        {
+            lastCommentCreatedAt ??= DateTime.MaxValue;
+            filter = Builders<CommentDocument>.Filter.And(
+                Builders<CommentDocument>.Filter.Lt(d => d.CreatedAt, lastCommentCreatedAt),
+                Builders<CommentDocument>.Filter.Eq(d => d.PostId, postId),
+                Builders<CommentDocument>.Filter.Eq(d => d.RootCommentId, rootCommentId)
+            );
+            sort = Builders<CommentDocument>.Sort
+                .Descending(d => d.CreatedAt);
         }
 
         var comments = await db.Comments

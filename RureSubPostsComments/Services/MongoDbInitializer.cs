@@ -22,7 +22,8 @@ public class MongoDbInitializer(IMongoDbService mongoDbService) : IHostedService
 
         var postIndexes = new List<CreateIndexModel<CommentDocument>>
         {
-            new(Builders<CommentDocument>.IndexKeys.Ascending(d => d.CreatedAt).Ascending(d => d.Id))
+            new(Builders<CommentDocument>.IndexKeys.Ascending(d => d.CreatedAt).Ascending(d => d.Id)),
+            new(Builders<CommentDocument>.IndexKeys.Ascending(d => d.AuthorId).Ascending(d => d.Id)),
         };
 
         await mongoDbService.Comments.Indexes.CreateManyAsync(postIndexes, cancellationToken: cancellationToken);
