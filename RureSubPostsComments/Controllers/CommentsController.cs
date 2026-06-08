@@ -13,6 +13,7 @@ using System.Text.Json;
 
 namespace RureSubPostsComments.Controllers;
 
+[ApiController]
 [Route("/")]
 public class CommentsController : Controller
 {
@@ -21,17 +22,6 @@ public class CommentsController : Controller
     public CommentsController(ProducerConfig producerConfig)
     {
         producer = new ProducerBuilder<string, string>(producerConfig).Build();
-    }
-
-    public async Task<bool[]> CheckLikesWithPipelineAsync(IDatabase db, string userId, IEnumerable<Guid> commentsIds)
-    {
-        var key = $"user:{userId}:liked_comments";
-
-        RedisValue[] fields = [.. commentsIds.Select(i => (RedisValue)i.ToString())];
-
-        RedisValue[] values = await db.HashGetAsync(key, fields);
-
-        return [.. values.Select(v => !v.IsNull)];
     }
 
     [HttpPost]
@@ -196,7 +186,7 @@ public class CommentsController : Controller
     [HttpGet]
     public async Task<IActionResult> GetComments(
         [FromServices] IMongoDbService db,
-        [FromServices] IConnectionMultiplexer redis,
+        [FromServices] ILikesService likesService,
         [FromQuery] Guid? postId,
         [FromQuery] Guid? rootCommentId,
         [FromQuery] Guid? lastCommentId,
@@ -267,27 +257,14 @@ public class CommentsController : Controller
 
         #region likes
 
-        var redisDb = redis.GetDatabase();
-
-        if (redisDb == null)
-        {
-            return Ok(result);
-        }
-
         var userIdRaw = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier);
         if (userIdRaw == null || string.IsNullOrEmpty(userIdRaw.Value) || !Guid.TryParse(userIdRaw.Value, out var userId))
         {
             return Ok(result);
         }
 
-        var userRedisId = await redisDb.StringGetAsync($"user:id:{userId}");
 
-        if (userRedisId.IsNullOrEmpty)
-        {
-            return Ok(result);
-        }
-
-        var likes = await CheckLikesWithPipelineAsync(redisDb, userRedisId.ToString(), result.Select(c => c.Id));
+        var likes = await likesService.IsCommentsLiked(userId, [.. result.Select(c => c.Id)]);
 
         if (likes.Length == result.Count)
         {

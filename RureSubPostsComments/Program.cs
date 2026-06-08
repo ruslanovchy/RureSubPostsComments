@@ -14,7 +14,10 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
 
-builder.Services.AddHostedService<CommentLikedWorker>();
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+
+// builder.Services.AddHostedService<CommentLikedWorker>();
 builder.Services.AddHostedService<PostDeletedWorker>();
 builder.Services.AddHostedService<ProfilePropertyChangedWorker>();
 
@@ -141,6 +144,9 @@ builder.Services.AddCors(options =>
 
 #endregion
 
+builder.Services.AddHostedService<ProfileCreatedWorker>();
+builder.Services.AddSingleton<ILikesService, LikesService>();
+
 var app = builder.Build();
 
 if (!app.Environment.IsDevelopment())
@@ -152,6 +158,8 @@ if (!app.Environment.IsDevelopment())
 else
 {
     app.UseCors("Development");
+    app.UseSwagger();
+    app.UseSwaggerUI();
 }
 
 app.UseRouting();
